@@ -122,9 +122,10 @@ for comment in pbp:
 
 if len(event_list) > 0:
     print("event list is this big: {}".format(len(event_list)))
-    df = pd.DataFrame(columns=['inning_half','score_for','score_against','inning_outs','runner_first','runner_second','runner_third',
+    df = pd.DataFrame(event_list, columns=['inning_half','score_for','score_against','inning_outs','runner_first','runner_second','runner_third',
                                'total_pitches','balls','strikes','runs_from_play','outs_from_play','batter','pitcher',
                                'outcome','substitution','challenge'])
+    print("df is this big: {}".format(len(df)))
     df.to_parquet('mariners_game_test.parquet', engine='fastparquet')
 
 # # Scorebox Test
