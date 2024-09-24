@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup, Comment
+from collections import OrderedDict
 import requests
 import pandas as pd
 import re
@@ -14,10 +15,14 @@ sea_soup = BeautifulSoup(sea_response, 'html.parser')
 def isComment(elem):
     return isinstance(elem, Comment)
 
+# Ultimate goal for DF structure
+# df = pd.DataFrame(columns=['...','Substitution_Position','Substitution_Pitcher','Challenge_Overturned','Challenge_Upheld'])
+event_list = []
+
 pbp = sea_soup.find_all(string=lambda string:isinstance(string, Comment))
 for comment in pbp:
     if "div_play_by_play" in comment:
-        x = 1
+        x = 0
         for line in comment.string.splitlines():
             # if "pbp_summary_top" in line:
                 # I don't think there's anything valuable we don't already have here
@@ -35,7 +40,7 @@ for comment in pbp:
             #     print(x)
             #     x = x + 1
             if "event_" in line:
-                print("event:")
+                #print("event:")
                 event_soup = BeautifulSoup(line, 'html.parser')
                 inning = event_soup.find('th', {"data-stat": "inning"})
                 score_tag = event_soup.find('td', {"data-stat": "score_batting_team"})
@@ -68,42 +73,59 @@ for comment in pbp:
                 # # Groundout: 3B-2B/Forceout at XB; <First initial>.&nbsp;<last name> to XB>;;Walk, Wild Pitch; J.&nbsp;Mateo to 3B;;
                 # # Flyball: RF/Sacrifice Fly (Deep RF); J.&nbsp;Mateo Scores;Foul Popfly: 3B (3B into Foul Terr.)>
 
-                print("inning = {}".format(inning.text))
-                print("SCORE:: batting: {}; fielding: {}".format(score_for, score_against))
-                print("Inning outs: {}".format(inning_outs))
-                if runner_first:
-                    print("Runner on first base")
-                if runner_second:
-                    print("Runner on second base")
-                if runner_third:
-                    print("Runner on third base")
-                print("Total pitches: {}; Balls: {}; Strikes: {}".format(total_pitches, balls, strikes))
-                print("Runs from play: {}".format(str(runs_from_play)))
-                print("Outs from play: {}".format(str(outs_from_play)))
-                print("batter = {}".format(batter))
-                print("pitcher = {}".format(pitcher))
-                print("outcome = {}".format(outcome_tag.text))
-
-                # print(x)
-                # x = x + 1
+                # print("inning = {}".format(inning.text))
+                # print("SCORE:: batting: {}; fielding: {}".format(score_for, score_against))
+                # print("Inning outs: {}".format(inning_outs))
+                # if runner_first:
+                #     print("Runner on first base")
+                # if runner_second:
+                #     print("Runner on second base")
+                # if runner_third:
+                #     print("Runner on third base")
+                # print("Total pitches: {}; Balls: {}; Strikes: {}".format(total_pitches, balls, strikes))
+                # print("Runs from play: {}".format(str(runs_from_play)))
+                # print("Outs from play: {}".format(str(outs_from_play)))
+                # print("batter = {}".format(batter))
+                # print("pitcher = {}".format(pitcher))
+                # print("outcome = {}".format(outcome_tag.text))
+                event_data = {'inning_half': inning.text, 'score_for': score_for, 'score_against': score_against, 'inning_outs': inning_outs, 
+                              'runner_first': runner_first,'runner_second': runner_second,'runner_third': runner_third, 
+                              'total_pitches': total_pitches, 'balls': balls, 'strikes': strikes, 'runs_from_play': runs_from_play, 
+                              'outs_from_play': outs_from_play, 'batter': batter, 'pitcher': pitcher, 'outcome': outcome_tag.text}
+                event_list.append(event_data)
+                
+                print(x)
+                x = x + 1
             if "<tr class=\"ingame_substitution" in line:
-                print("substitution:")
+                #print("substitution:")
                 substitution_soup = BeautifulSoup(line, 'html.parser')
                 replacement_action = substitution_soup.find('td', {"data-stat": "inning_summary_3"}).find('div')
-                print(replacement_action.text)
+                #print(replacement_action.text)
                 # Need to fix tilde and enye chars
                 # <Replacement player> <replacement action> for <Replaced Player> <position> batting <batting order>
-                # print(x)
-                # x = x + 1
+                
+                replacement_data = {'replacement': replacement_action.text}
+                event_list.append(replacement_data)
+                print(x)
+                x = x + 1
             if "Challenge" in line:
-                print("challenge:")
+                #print("challenge:")
                 challenge_soup = BeautifulSoup(line, 'html.parser')
                 challege_action = challenge_soup.find('span', {"class": "ingame_substitution"})
-                print(challege_action.text)
+                #print(challege_action.text)
                 # <Play> Challenged by <TEAM 3 char> manager (<manager name>): Original call <result>
-                # print(x)
-                # x = x + 1
+                
+                challenge_data = {'challenge': challege_action.text}
+                event_list.append(challenge_data)
+                print(x)
+                x = x + 1
 
+if len(event_list) > 0:
+    print("event list is this big: {}".format(len(event_list)))
+    df = pd.DataFrame(columns=['inning_half','score_for','score_against','inning_outs','runner_first','runner_second','runner_third',
+                               'total_pitches','balls','strikes','runs_from_play','outs_from_play','batter','pitcher',
+                               'outcome','substitution','challenge'])
+    df.to_parquet('mariners_game_test.parquet', engine='fastparquet')
 
 # # Scorebox Test
 #scorebox = sea_soup.find("div", {"class": "scorebox_meta"})
