@@ -6,10 +6,8 @@ import pandas as pd
 import re
 
 BASE_URL = "https://www.baseball-reference.com"
-QUERY_YEAR_URL = "https://www.baseball-reference.com/leagues/majors/2023-schedule.shtml"
-#MANUAL_TEST_URL = "https://www.baseball-reference.com/boxes/SFN/SFN202305090.shtml"
 
-year_response = requests.get(QUERY_YEAR_URL).text
+#MANUAL_TEST_URL = "https://www.baseball-reference.com/boxes/SFN/SFN202305090.shtml"
 
 #SEA_URL = "https://www.baseball-reference.com/boxes/SEA/SEA202403280.shtml"
 #sea_response = requests.get(SEA_URL).text
@@ -18,7 +16,7 @@ year_response = requests.get(QUERY_YEAR_URL).text
 def isComment(elem):
     return isinstance(elem, Comment)
 
-def scrape_game(url):
+def scrape_game(url, full_route):
     event_list = []
     game_response = requests.get(url).text
     game_soup = BeautifulSoup(game_response, 'html.parser')
@@ -148,26 +146,27 @@ def scrape_game(url):
                                   'total_pitches','balls','strikes','pitch_assortment','runs_from_play','outs_from_play','batter','pitcher',
                                   'outcome','substitution','challenge'])
         #print("df is this big: {}".format(len(df)))
-        # TODO need dynamic filename
-        filename = "{}.parquet".format(url.split('/')[5].split('.')[0])
-        dir = "{}/{}".format('data', filename[3:11])
-        if not os.path.exists(dir):
-            os.makedirs(dir)
+
+        # filename = "{}.parquet".format(url.split('/')[5].split('.')[0])
+        # dir = "{}/{}".format('data', filename[3:11])
+        # if not os.path.exists(dir):
+        #     os.makedirs(dir)
     
-        full_route = "{}/{}".format(dir, filename)
+        # full_route = "{}/{}".format(dir, filename)
         #print(full_route)
         df.to_parquet(full_route, engine='fastparquet')
 
 
-
-
+year = 2023
+query_url = "https://www.baseball-reference.com/leagues/majors/{}-schedule.shtml".format(year)
+year_response = requests.get(query_url).text
 year_soup = BeautifulSoup(year_response, 'html.parser')
 test_games = year_soup.find_all("p", class_="game")
+time.sleep(3)
 
 # This extracts SEA home game URLS
 sea_games = 0
 for game in test_games:
-    time.sleep(3)
     try:
         suffix = game.em.a["href"]
         if "/previews/" in suffix:
@@ -178,9 +177,20 @@ for game in test_games:
         #     continue
         #sea_games = sea_games + 1
         #print(BASE_URL + suffix)
-        scrape_game(BASE_URL + suffix)
+        uri = BASE_URL + suffix
+        filename = "{}.parquet".format(uri.split('/')[5].split('.')[0])
+        dir = "{}/{}/{}".format('data', year, filename[3:11])
+        full_route = "{}/{}".format(dir, filename)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        if os.path.isfile(full_route):
+            # Game already saved
+            continue
+        scrape_game(uri, full_route)
+        time.sleep(3)
     except AttributeError:
         # No link to boxscore exists (future game?)
+        time.sleep(3)
         continue
 print("Total games: {}, Sea games: {}".format(len(test_games), sea_games))
 
