@@ -7,8 +7,6 @@ import re
 
 BASE_URL = "https://www.baseball-reference.com"
 
-#MANUAL_TEST_URL = "https://www.baseball-reference.com/boxes/SFN/SFN202305090.shtml"
-
 #SEA_URL = "https://www.baseball-reference.com/boxes/SEA/SEA202403280.shtml"
 #sea_response = requests.get(SEA_URL).text
 #sea_soup = BeautifulSoup(sea_response, 'html.parser')
@@ -26,21 +24,6 @@ def scrape_game(url, full_route):
         if "div_play_by_play" in comment:
             x = 0
             for line in comment.string.splitlines():
-                # if "pbp_summary_top" in line:
-                    # I don't think there's anything valuable we don't already have here
-                    # print("Top Summary:")
-                    # print(line)
-                    # <Top/Bottom> of the <inning>, <Team full name> Batting, <Ahead/Behind> <batters team perspective score x-x>, 
-                    # <Team full name>' <Pitcher name> facing <next three batter positions, x-y-z>
-                    # print(x)
-                    # x = x + 1
-                # I don't think there's anything valuable we don't already have here
-                # if "pbp_summary_bottom" in line:
-                #     print("Bottom Summary:")
-                #     print(line)
-                #     # <X> runs, <X> hits, <X> errors, <X> LOB. <Team name> <Score> <Team name> <Score>.
-                #     print(x)
-                #     x = x + 1
                 if "event_" in line:
                     #print("event:")
                     event_soup = BeautifulSoup(line, 'html.parser')
@@ -121,10 +104,7 @@ def scrape_game(url, full_route):
                     
                     replacement_data = {'replacement': replacement_action.text}
                     event_list.append(replacement_data)
-                    # print(x)
-                    # x = x + 1
                 if "Challenge" in line:
-                    #print("challenge:")
                     challenge_soup = BeautifulSoup(line, 'html.parser')
                     challege_action = challenge_soup.find('span', {"class": "ingame_substitution"})
                     #print(challege_action.text)
@@ -132,28 +112,14 @@ def scrape_game(url, full_route):
                     
                     challenge_data = {'challenge': challege_action.text}
                     event_list.append(challenge_data)
-                    # print(x)
-                    # x = x + 1
     if len(event_list) > 0:
-        #print("event list is this big: {}".format(len(event_list)))
-
         # Ultimate goal for DF structure
         # df = pd.DataFrame(columns=['...','Substitution_Position','Substitution_Pitcher','Challenge_Overturned','Challenge_Upheld'])
 
-        #TODO wipe out event_list with temp code to prevent too much run on test
-        #event_list = []
         df = pd.DataFrame(event_list, columns=['inning_half','score_for','score_against','inning_outs','runner_first','runner_second','runner_third',
                                   'total_pitches','balls','strikes','pitch_assortment','runs_from_play','outs_from_play','batter','pitcher',
                                   'outcome','substitution','challenge'])
-        #print("df is this big: {}".format(len(df)))
 
-        # filename = "{}.parquet".format(url.split('/')[5].split('.')[0])
-        # dir = "{}/{}".format('data', filename[3:11])
-        # if not os.path.exists(dir):
-        #     os.makedirs(dir)
-    
-        # full_route = "{}/{}".format(dir, filename)
-        #print(full_route)
         df.to_parquet(full_route, engine='fastparquet')
 
 
@@ -173,10 +139,6 @@ for game in test_games:
             # Future game
             # https://www.baseball-reference.com/previews/2024/CHN202409290.shtml
             continue
-        # if "/SEA/" not in suffix:
-        #     continue
-        #sea_games = sea_games + 1
-        #print(BASE_URL + suffix)
         uri = BASE_URL + suffix
         filename = "{}.parquet".format(uri.split('/')[5].split('.')[0])
         dir = "{}/{}/{}".format('data', year, filename[3:11])
@@ -189,23 +151,6 @@ for game in test_games:
         scrape_game(uri, full_route)
         time.sleep(3)
     except AttributeError:
-        # No link to boxscore exists (future game?)
         time.sleep(3)
         continue
 print("Total games: {}, Sea games: {}".format(len(test_games), sea_games))
-
-# scrape_game(MANUAL_TEST_URL)
-
-# # Scorebox Test
-#scorebox = sea_soup.find("div", {"class": "scorebox_meta"})
-# try:
-#     print(scorebox.prettify())
-# except AttributeError:
-#     print("attribute error")
-
-# table = sea_soup.findAll('table')[0].findAll('tr')
-# for row in table:
-#     try:
-#         print(row.prettify())
-#     except AttributeError:
-#         continue
