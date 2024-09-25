@@ -6,10 +6,11 @@ import re
 
 BASE_URL = "https://www.baseball-reference.com"
 QUERY_YEAR_URL = "https://www.baseball-reference.com/leagues/majors/2023-schedule.shtml"
-#SEA_URL = "https://www.baseball-reference.com/boxes/SEA/SEA202403280.shtml"
 
-#sea_response = requests.get(SEA_URL).text
 year_response = requests.get(QUERY_YEAR_URL).text
+
+#SEA_URL = "https://www.baseball-reference.com/boxes/SEA/SEA202403280.shtml"
+#sea_response = requests.get(SEA_URL).text
 #sea_soup = BeautifulSoup(sea_response, 'html.parser')
 
 def isComment(elem):
@@ -125,11 +126,18 @@ def scrape_game(url):
 
         # Ultimate goal for DF structure
         # df = pd.DataFrame(columns=['...','Substitution_Position','Substitution_Pitcher','Challenge_Overturned','Challenge_Upheld'])
+
+        #TODO wipe out event_list with temp code to prevent too much run on test
+        event_list = []
         df = pd.DataFrame(event_list, columns=['inning_half','score_for','score_against','inning_outs','runner_first','runner_second','runner_third',
                                    'total_pitches','balls','strikes','runs_from_play','outs_from_play','batter','pitcher',
                                    'outcome','substitution','challenge'])
         print("df is this big: {}".format(len(df)))
-        df.to_parquet('mariners_game_test.parquet', engine='fastparquet')
+        # TODO need dynamic filename
+        filename = "{}.parquet".format(url.split('/')[5].split('.')[0])
+        dir = "{}/".format(filename[3:11])
+        print("{}{}".format(dir, filename))
+        #df.to_parquet("{}{}".format(dir, filename), engine='fastparquet')
 
 
 
@@ -147,8 +155,8 @@ for game in test_games:
             # Future game
             # https://www.baseball-reference.com/previews/2024/CHN202409290.shtml
             continue
-        if "/SEA/" not in suffix:
-            continue
+        # if "/SEA/" not in suffix:
+        #     continue
         #sea_games = sea_games + 1
         #print(BASE_URL + suffix)
         scrape_game(BASE_URL + suffix)
