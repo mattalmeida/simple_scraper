@@ -123,16 +123,42 @@ def scrape_game(url, full_route):
         df.to_parquet(full_route, engine='fastparquet')
 
 
-year = 2023
+year = 2020
 query_url = "https://www.baseball-reference.com/leagues/majors/{}-schedule.shtml".format(year)
 year_response = requests.get(query_url).text
 year_soup = BeautifulSoup(year_response, 'html.parser')
-test_games = year_soup.find_all("p", class_="game")
+
+section_wrapper_tags = year_soup.find_all("div", class_="section_wrapper") #{"class": "section_wrapper"})
+regular_season_games = section_wrapper_tags[0].find_all("p", class_="game")
+post_season_games = section_wrapper_tags[1].find_all("p", class_="game")
+print("Length {} Postseason {}".format(len(regular_season_games), len(post_season_games)))
+
 time.sleep(3)
 
-# This extracts SEA home game URLS
-sea_games = 0
-for game in test_games:
+# for game in games_tag:
+#     try:
+#         suffix = game.em.a["href"]
+#         if "/previews/" in suffix:
+#             # Future game
+#             # https://www.baseball-reference.com/previews/2024/CHN202409290.shtml
+#             continue
+#         uri = BASE_URL + suffix
+#         filename = "{}.parquet".format(uri.split('/')[5].split('.')[0])
+#         dir = "{}/{}/{}".format('data', year, filename[3:11])
+#         full_route = "{}/{}".format(dir, filename)
+#         if not os.path.exists(dir):
+#             os.makedirs(dir)
+#         if os.path.isfile(full_route):
+#             # Game already saved
+#             continue
+#         scrape_game(uri, full_route)
+#         time.sleep(3)
+#     except AttributeError:
+#         time.sleep(3)
+#         continue
+# print("Total games: {}".format(len(games_tag)))
+
+for game in regular_season_games:
     try:
         suffix = game.em.a["href"]
         if "/previews/" in suffix:
@@ -141,7 +167,7 @@ for game in test_games:
             continue
         uri = BASE_URL + suffix
         filename = "{}.parquet".format(uri.split('/')[5].split('.')[0])
-        dir = "{}/{}/{}".format('data', year, filename[3:11])
+        dir = "{}/{}/{}/{}".format('data', year, 'season', filename[3:11])
         full_route = "{}/{}".format(dir, filename)
         if not os.path.exists(dir):
             os.makedirs(dir)
@@ -153,4 +179,27 @@ for game in test_games:
     except AttributeError:
         time.sleep(3)
         continue
-print("Total games: {}, Sea games: {}".format(len(test_games), sea_games))
+print("Total regular season games: {}".format(len(regular_season_games)))
+
+for game in post_season_games:
+    try:
+        suffix = game.em.a["href"]
+        if "/previews/" in suffix:
+            # Future game
+            # https://www.baseball-reference.com/previews/2024/CHN202409290.shtml
+            continue
+        uri = BASE_URL + suffix
+        filename = "{}.parquet".format(uri.split('/')[5].split('.')[0])
+        dir = "{}/{}/{}/{}".format('data', year, 'postseason', filename[3:11])
+        full_route = "{}/{}".format(dir, filename)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        if os.path.isfile(full_route):
+            # Game already saved
+            continue
+        scrape_game(uri, full_route)
+        time.sleep(3)
+    except AttributeError:
+        time.sleep(3)
+        continue
+print("Total post season games: {}".format(len(post_season_games)))
