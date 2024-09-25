@@ -23,7 +23,7 @@ def scrape_game(url):
     pbp = game_soup.find_all(string=lambda string:isinstance(string, Comment))
     for comment in pbp:
         if "div_play_by_play" in comment:
-            x = 0
+            #x = 0
             for line in comment.string.splitlines():
                 # if "pbp_summary_top" in line:
                     # I don't think there's anything valuable we don't already have here
@@ -95,8 +95,8 @@ def scrape_game(url):
                                 'outs_from_play': outs_from_play, 'batter': batter, 'pitcher': pitcher, 'outcome': outcome_tag.text}
                     event_list.append(event_data)
                     
-                    print(x)
-                    x = x + 1
+                    # print(x)
+                    # x = x + 1
                 if "<tr class=\"ingame_substitution" in line:
                     #print("substitution:")
                     substitution_soup = BeautifulSoup(line, 'html.parser')
@@ -107,8 +107,8 @@ def scrape_game(url):
                     
                     replacement_data = {'replacement': replacement_action.text}
                     event_list.append(replacement_data)
-                    print(x)
-                    x = x + 1
+                    # print(x)
+                    # x = x + 1
                 if "Challenge" in line:
                     #print("challenge:")
                     challenge_soup = BeautifulSoup(line, 'html.parser')
@@ -118,8 +118,8 @@ def scrape_game(url):
                     
                     challenge_data = {'challenge': challege_action.text}
                     event_list.append(challenge_data)
-                    print(x)
-                    x = x + 1
+                    # print(x)
+                    # x = x + 1
     if len(event_list) > 0:
         print("event list is this big: {}".format(len(event_list)))
 
