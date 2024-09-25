@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup, Comment
 import time
 import requests
+import os
 import pandas as pd
 import re
 
@@ -122,22 +123,26 @@ def scrape_game(url):
                     # print(x)
                     # x = x + 1
     if len(event_list) > 0:
-        print("event list is this big: {}".format(len(event_list)))
+        #print("event list is this big: {}".format(len(event_list)))
 
         # Ultimate goal for DF structure
         # df = pd.DataFrame(columns=['...','Substitution_Position','Substitution_Pitcher','Challenge_Overturned','Challenge_Upheld'])
 
         #TODO wipe out event_list with temp code to prevent too much run on test
-        event_list = []
+        #event_list = []
         df = pd.DataFrame(event_list, columns=['inning_half','score_for','score_against','inning_outs','runner_first','runner_second','runner_third',
-                                   'total_pitches','balls','strikes','runs_from_play','outs_from_play','batter','pitcher',
-                                   'outcome','substitution','challenge'])
-        print("df is this big: {}".format(len(df)))
+                                  'total_pitches','balls','strikes','runs_from_play','outs_from_play','batter','pitcher',
+                                  'outcome','substitution','challenge'])
+        #print("df is this big: {}".format(len(df)))
         # TODO need dynamic filename
         filename = "{}.parquet".format(url.split('/')[5].split('.')[0])
-        dir = "{}/".format(filename[3:11])
-        print("{}{}".format(dir, filename))
-        #df.to_parquet("{}{}".format(dir, filename), engine='fastparquet')
+        dir = "{}/{}".format('data', filename[3:11])
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+    
+        full_route = "{}/{}".format(dir, filename)
+        #print(full_route)
+        df.to_parquet(full_route, engine='fastparquet')
 
 
 
