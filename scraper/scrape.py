@@ -7,6 +7,7 @@ import re
 
 BASE_URL = "https://www.baseball-reference.com"
 QUERY_YEAR_URL = "https://www.baseball-reference.com/leagues/majors/2023-schedule.shtml"
+MANUAL_TEST_URL = "https://www.baseball-reference.com/boxes/SFN/SFN202305090.shtml"
 
 year_response = requests.get(QUERY_YEAR_URL).text
 
@@ -25,7 +26,7 @@ def scrape_game(url):
     pbp = game_soup.find_all(string=lambda string:isinstance(string, Comment))
     for comment in pbp:
         if "div_play_by_play" in comment:
-            #x = 0
+            x = 0
             for line in comment.string.splitlines():
                 # if "pbp_summary_top" in line:
                     # I don't think there's anything valuable we don't already have here
@@ -47,18 +48,23 @@ def scrape_game(url):
                     event_soup = BeautifulSoup(line, 'html.parser')
                     inning = event_soup.find('th', {"data-stat": "inning"})
                     score_tag = event_soup.find('td', {"data-stat": "score_batting_team"})
-                    score_for = score_tag.text[0]
-                    score_against = score_tag.text[2]
+                    score_for = int(score_tag.text[0])
+                    score_against = int(score_tag.text[2])
                     outs_tag = event_soup.find('td', {"data-stat": "outs"})
-                    inning_outs = outs_tag.text
+                    inning_outs = int(outs_tag.text)
                     runners_tag = event_soup.find('td', {"data-stat": "runners_on_bases_pbp"})
                     runner_first = True if '1' == runners_tag.text[0] else False
                     runner_second = True if '2' == runners_tag.text[1] else False
                     runner_third = True if '3' == runners_tag.text[2] else False
                     pitches_tag = event_soup.find('td', {"data-stat": "pitches_pbp"})
-                    total_pitches = pitches_tag.text[0]
-                    balls = pitches_tag.text[3]
-                    strikes = pitches_tag.text[5]
+                    if pitches_tag:
+                        total_pitches = int(pitches_tag.text[0])
+                        balls = int(pitches_tag.text[3])
+                        strikes = int(pitches_tag.text[5])
+                    else:
+                        total_pitches = 0
+                        balls = 0
+                        strikes = 0
                     runs_outs_results_tag = event_soup.find('td', {"data-stat": "runs_outs_result"})
                     if runs_outs_results_tag:
                         runs_from_play = runs_outs_results_tag.text.count('R') or 0
@@ -97,8 +103,8 @@ def scrape_game(url):
                                 'outs_from_play': outs_from_play, 'batter': batter, 'pitcher': pitcher, 'outcome': outcome_tag.text}
                     event_list.append(event_data)
                     
-                    # print(x)
-                    # x = x + 1
+                    print(x)
+                    x = x + 1
                 if "<tr class=\"ingame_substitution" in line:
                     #print("substitution:")
                     substitution_soup = BeautifulSoup(line, 'html.parser')
@@ -152,25 +158,25 @@ test_games = year_soup.find_all("p", class_="game")
 
 # This extracts SEA home game URLS
 sea_games = 0
-for game in test_games:
-    time.sleep(3)
-    try:
-        suffix = game.em.a["href"]
-        if "/previews/" in suffix:
-            # Future game
-            # https://www.baseball-reference.com/previews/2024/CHN202409290.shtml
-            continue
-        # if "/SEA/" not in suffix:
-        #     continue
-        #sea_games = sea_games + 1
-        #print(BASE_URL + suffix)
-        scrape_game(BASE_URL + suffix)
-    except AttributeError:
-        # No link to boxscore exists (future game?)
-        continue
-print("Total games: {}, Sea games: {}".format(len(test_games), sea_games))
+# for game in test_games:
+#     time.sleep(3)
+#     try:
+#         suffix = game.em.a["href"]
+#         if "/previews/" in suffix:
+#             # Future game
+#             # https://www.baseball-reference.com/previews/2024/CHN202409290.shtml
+#             continue
+#         # if "/SEA/" not in suffix:
+#         #     continue
+#         #sea_games = sea_games + 1
+#         #print(BASE_URL + suffix)
+#         scrape_game(BASE_URL + suffix)
+#     except AttributeError:
+#         # No link to boxscore exists (future game?)
+#         continue
+# print("Total games: {}, Sea games: {}".format(len(test_games), sea_games))
 
-
+scrape_game(MANUAL_TEST_URL)
 
 # # Scorebox Test
 #scorebox = sea_soup.find("div", {"class": "scorebox_meta"})
