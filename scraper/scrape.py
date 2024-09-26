@@ -3,13 +3,10 @@ import time
 import requests
 import os
 import pandas as pd
-import re
 
 BASE_URL = "https://www.baseball-reference.com"
-
-#SEA_URL = "https://www.baseball-reference.com/boxes/SEA/SEA202403280.shtml"
-#sea_response = requests.get(SEA_URL).text
-#sea_soup = BeautifulSoup(sea_response, 'html.parser')
+REG_SEASON = "season"
+POSTSEASON = "postseason"
 
 def isComment(elem):
     return isinstance(elem, Comment)
@@ -22,7 +19,6 @@ def scrape_game(url, full_route):
     pbp = game_soup.find_all(string=lambda string:isinstance(string, Comment))
     for comment in pbp:
         if "div_play_by_play" in comment:
-            x = 0
             for line in comment.string.splitlines():
                 if "event_" in line:
                     #print("event:")
@@ -47,7 +43,6 @@ def scrape_game(url, full_route):
                             balls = 0
                         strikes = int(pitches_tag.text.split(',')[1].split('-')[1].split(')')[0])
                         pitch_assortment = pitches_tag.text.split(',')[1].split('-')[1].split(')')[1][1:]
-                        #print("Total pitches: {}; Balls: {}; Strikes: {}; Mix: {}".format(total_pitches, balls, strikes, pitch_assortment))
                     else:
                         total_pitches = 0
                         balls = 0
@@ -66,40 +61,26 @@ def scrape_game(url, full_route):
                     pitcher = pitcher_tag.text
                     outcome_tag = event_soup.find('td', {"data-stat": "play_desc"})
                     
-                    # # outcome_tag.string format one of- <Strikeout Swinging;;Flyball: RF/CF/LF;;Single to X;;Walk; <First initial>.&nbsp;<last name> to XB/??;;
-                    # # Groundout: 3B-2B/Forceout at XB; <First initial>.&nbsp;<last name> to XB>;;Walk, Wild Pitch; J.&nbsp;Mateo to 3B;;
-                    # # Flyball: RF/Sacrifice Fly (Deep RF); J.&nbsp;Mateo Scores;Foul Popfly: 3B (3B into Foul Terr.)>
+                    # # outcome_tag.string format one of- 
+                    # Strikeout Swinging
+                    # Flyball: RF/CF/LF
+                    # Single to X
+                    # Walk; <First initial>.&nbsp;<last name> to XB/??
+                    # Groundout: 3B-2B/Forceout at XB; <First initial>.&nbsp;<last name> to XB>
+                    # Walk, Wild Pitch; J.&nbsp;Mateo to 3B
+                    # Flyball: RF/Sacrifice Fly (Deep RF); J.&nbsp;Mateo Scores;Foul Popfly: 3B (3B into Foul Terr.)
 
-                    # print("inning = {}".format(inning.text))
-                    # print("SCORE:: batting: {}; fielding: {}".format(score_for, score_against))
-                    # print("Inning outs: {}".format(inning_outs))
-                    # if runner_first:
-                    #     print("Runner on first base")
-                    # if runner_second:
-                    #     print("Runner on second base")
-                    # if runner_third:
-                    #     print("Runner on third base")
-                    # print("Total pitches: {}; Balls: {}; Strikes: {}".format(total_pitches, balls, strikes))
-                    # print("Runs from play: {}".format(str(runs_from_play)))
-                    # print("Outs from play: {}".format(str(outs_from_play)))
-                    # print("batter = {}".format(batter))
-                    # print("pitcher = {}".format(pitcher))
-                    # print("outcome = {}".format(outcome_tag.text))
                     event_data = {'inning_half': inning.text, 'score_for': score_for, 'score_against': score_against, 
                                   'inning_outs': inning_outs, 'runner_first': runner_first,'runner_second': runner_second,
                                   'runner_third': runner_third, 'total_pitches': total_pitches, 'balls': balls, 
                                   'strikes': strikes, 'pitch_assortment': pitch_assortment, 'runs_from_play': runs_from_play, 
-                                  'outs_from_play': outs_from_play, 'batter': batter, 'pitcher': pitcher, 'outcome': outcome_tag.text}
+                                  'outs_from_play': outs_from_play, 'batter': batter, 'pitcher': pitcher, 
+                                  'outcome': outcome_tag.text}
                     event_list.append(event_data)
-                    
-                    # print(x)
-                    # x = x + 1
                 if "<tr class=\"ingame_substitution" in line:
-                    #print("substitution:")
                     substitution_soup = BeautifulSoup(line, 'html.parser')
                     replacement_action = substitution_soup.find('td', {"data-stat": "inning_summary_3"}).find('div')
-                    #print(replacement_action.text)
-                    # Need to fix tilde and enye chars
+                    # TODO Need to fix tilde and enye chars
                     # <Replacement player> <replacement action> for <Replaced Player> <position> batting <batting order>
                     
                     replacement_data = {'replacement': replacement_action.text}
@@ -107,20 +88,40 @@ def scrape_game(url, full_route):
                 if "Challenge" in line:
                     challenge_soup = BeautifulSoup(line, 'html.parser')
                     challege_action = challenge_soup.find('span', {"class": "ingame_substitution"})
-                    #print(challege_action.text)
                     # <Play> Challenged by <TEAM 3 char> manager (<manager name>): Original call <result>
                     
                     challenge_data = {'challenge': challege_action.text}
                     event_list.append(challenge_data)
     if len(event_list) > 0:
         # Ultimate goal for DF structure
-        # df = pd.DataFrame(columns=['...','Substitution_Position','Substitution_Pitcher','Challenge_Overturned','Challenge_Upheld'])
+        # pd.DataFrame(columns=[...,'Substitution_Position','Substitution_Pitcher','Challenge_Overturned','Challenge_Upheld'])
 
-        df = pd.DataFrame(event_list, columns=['inning_half','score_for','score_against','inning_outs','runner_first','runner_second','runner_third',
-                                  'total_pitches','balls','strikes','pitch_assortment','runs_from_play','outs_from_play','batter','pitcher',
-                                  'outcome','substitution','challenge'])
+        df = pd.DataFrame(event_list, columns=['inning_half','score_for','score_against','inning_outs','runner_first',
+                                               'runner_second','runner_third','total_pitches','balls','strikes',
+                                               'pitch_assortment','runs_from_play','outs_from_play','batter','pitcher',
+                                               'outcome','substitution','challenge'])
 
         df.to_parquet(full_route, engine='fastparquet')
+
+def extract_data(game, season):
+    try:
+        suffix = game.em.a["href"]
+        # Ensure not future game
+        if "/previews/" not in suffix:
+            uri = BASE_URL + suffix
+            filename = "{}.parquet".format(uri.split('/')[5].split('.')[0])
+            dir = "{}/{}/{}/{}".format('data', year, season, filename[3:11])
+            full_route = "{}/{}".format(dir, filename)
+            # Ensure dir exists
+            if not os.path.exists(dir):
+                os.makedirs(dir)
+            # Only scrape if file doesn't exist
+            if not os.path.isfile(full_route):
+                scrape_game(uri, full_route)
+                time.sleep(3)  
+    except AttributeError:
+        print("error occurred")
+        time.sleep(3)
 
 
 year = 2020
@@ -132,74 +133,10 @@ section_wrapper_tags = year_soup.find_all("div", class_="section_wrapper") #{"cl
 regular_season_games = section_wrapper_tags[0].find_all("p", class_="game")
 post_season_games = section_wrapper_tags[1].find_all("p", class_="game")
 print("Length {} Postseason {}".format(len(regular_season_games), len(post_season_games)))
-
 time.sleep(3)
 
-# for game in games_tag:
-#     try:
-#         suffix = game.em.a["href"]
-#         if "/previews/" in suffix:
-#             # Future game
-#             # https://www.baseball-reference.com/previews/2024/CHN202409290.shtml
-#             continue
-#         uri = BASE_URL + suffix
-#         filename = "{}.parquet".format(uri.split('/')[5].split('.')[0])
-#         dir = "{}/{}/{}".format('data', year, filename[3:11])
-#         full_route = "{}/{}".format(dir, filename)
-#         if not os.path.exists(dir):
-#             os.makedirs(dir)
-#         if os.path.isfile(full_route):
-#             # Game already saved
-#             continue
-#         scrape_game(uri, full_route)
-#         time.sleep(3)
-#     except AttributeError:
-#         time.sleep(3)
-#         continue
-# print("Total games: {}".format(len(games_tag)))
-
 for game in regular_season_games:
-    try:
-        suffix = game.em.a["href"]
-        if "/previews/" in suffix:
-            # Future game
-            # https://www.baseball-reference.com/previews/2024/CHN202409290.shtml
-            continue
-        uri = BASE_URL + suffix
-        filename = "{}.parquet".format(uri.split('/')[5].split('.')[0])
-        dir = "{}/{}/{}/{}".format('data', year, 'season', filename[3:11])
-        full_route = "{}/{}".format(dir, filename)
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-        if os.path.isfile(full_route):
-            # Game already saved
-            continue
-        scrape_game(uri, full_route)
-        time.sleep(3)
-    except AttributeError:
-        time.sleep(3)
-        continue
-print("Total regular season games: {}".format(len(regular_season_games)))
+    extract_data(game, REG_SEASON)
 
 for game in post_season_games:
-    try:
-        suffix = game.em.a["href"]
-        if "/previews/" in suffix:
-            # Future game
-            # https://www.baseball-reference.com/previews/2024/CHN202409290.shtml
-            continue
-        uri = BASE_URL + suffix
-        filename = "{}.parquet".format(uri.split('/')[5].split('.')[0])
-        dir = "{}/{}/{}/{}".format('data', year, 'postseason', filename[3:11])
-        full_route = "{}/{}".format(dir, filename)
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-        if os.path.isfile(full_route):
-            # Game already saved
-            continue
-        scrape_game(uri, full_route)
-        time.sleep(3)
-    except AttributeError:
-        time.sleep(3)
-        continue
-print("Total post season games: {}".format(len(post_season_games)))
+    extract_data(game, POSTSEASON)
