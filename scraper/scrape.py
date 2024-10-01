@@ -124,7 +124,7 @@ def extract_data(game, season):
         time.sleep(3)
 
 
-year = 2020
+year = 2024
 query_url = "https://www.baseball-reference.com/leagues/majors/{}-schedule.shtml".format(year)
 year_response = requests.get(query_url).text
 year_soup = BeautifulSoup(year_response, 'html.parser')
@@ -136,7 +136,10 @@ print("Length {} Postseason {}".format(len(regular_season_games), len(post_seaso
 time.sleep(3)
 
 for game in regular_season_games:
-    extract_data(game, REG_SEASON)
+    if game.em is not None:
+        extract_data(game, REG_SEASON)
+    else:
+        print("Spring Training game")
 
 for game in post_season_games:
     extract_data(game, POSTSEASON)
